@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Flight Results — One Number Travel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<style>
+  /* Page-specific styles for the results view */
+  .results-header{
+    background:linear-gradient(180deg, var(--navy-deep) 0%, var(--navy) 100%);
+    color:var(--paper); padding:70px 0 46px;
+  }
+  .results-header .kicker{ color:var(--gold-soft); }
+  .results-header h1{ color:var(--paper); font-size:clamp(1.8rem,3vw,2.4rem); margin-top:10px; }
+  .results-header .route{
+    display:flex; align-items:center; gap:14px; margin-top:18px;
+    font-family:'IBM Plex Mono', monospace; color:rgba(247,244,236,0.8); font-size:0.95rem;
+  }
+  .results-header .route b{ color:var(--gold-soft); }
+
+  .results-wrap{ padding:50px 0 100px; }
+  .results-layout{ display:grid; grid-template-columns:260px 1fr; gap:36px; align-items:start; }
+
+  .filters{
+    background:var(--white); border:1px solid var(--line); border-radius:16px; padding:24px;
+    position:sticky; top:96px;
+  }
+  .filters h3{ font-size:1rem; margin-bottom:16px; }
+  .filter-group{ margin-bottom:22px; }
+  .filter-group:last-child{ margin-bottom:0; }
+  .filter-group label{
+    display:block; font-size:0.82rem; color:var(--ink-soft); margin-bottom:9px; font-weight:500;
+  }
+  .filter-chip{
+    display:inline-flex; align-items:center; gap:6px; font-size:0.82rem;
+    padding:6px 12px; border:1px solid var(--line); border-radius:99px; margin:0 6px 8px 0;
+    cursor:pointer; background:var(--paper-dim); color:var(--ink);
+  }
+  .filter-chip.active{ background:var(--navy-deep); color:var(--paper); border-color:var(--navy-deep); }
+
+  .result-count{
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;
+  }
+  .result-count p{ color:var(--ink-soft); font-size:0.92rem; }
+  .sort-select{
+    font-family:'Inter'; font-size:0.86rem; padding:9px 14px; border-radius:9px;
+    border:1px solid var(--line); background:var(--white); color:var(--ink); font-weight:500;
+  }
+
+  .flight-card{
+    background:var(--white); border:1px solid var(--line); border-radius:14px;
+    padding:22px 24px; margin-bottom:16px;
+    display:grid; grid-template-columns:1fr auto auto; gap:24px; align-items:center;
+    transition:box-shadow .2s ease, transform .2s ease;
+  }
+  .flight-card:hover{ box-shadow:0 16px 34px -18px rgba(11,31,58,0.28); transform:translateY(-2px); }
+
+  .flight-airline{ display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+  .airline-badge{
+    width:36px; height:36px; border-radius:9px; background:var(--navy-deep); color:var(--gold-soft);
+    display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:600;
+  }
+  .airline-name{ font-size:0.92rem; font-weight:600; }
+  .airline-meta{ font-size:0.78rem; color:var(--ink-soft); font-family:'IBM Plex Mono', monospace; }
+
+  .flight-times{ display:flex; align-items:center; gap:16px; }
+  .flight-times .time{ text-align:center; }
+  .flight-times .time b{ display:block; font-family:'Fraunces',serif; font-size:1.3rem; color:var(--navy-deep); }
+  .flight-times .time span{ font-size:0.76rem; color:var(--ink-soft); }
+  .flight-times .duration{
+    text-align:center; font-size:0.78rem; color:var(--ink-soft); position:relative; min-width:110px;
+  }
+  .duration-line{ height:1px; background:var(--line); margin:6px 0 4px; position:relative; }
+  .duration-line::after{
+    content:'✈'; position:absolute; right:0; top:-8px; font-size:0.7rem; color:var(--gold);
+  }
+
+  .flight-price{ text-align:right; }
+  .flight-price .amount{
+    font-family:'Fraunces', serif; font-size:1.6rem; color:var(--navy-deep); font-weight:600;
+  }
+  .flight-price .per{ font-size:0.76rem; color:var(--ink-soft); margin-bottom:12px; }
+  .select-btn{
+    background:var(--gold); color:var(--navy-deep); border:none;
+    padding:10px 22px; border-radius:9px; font-weight:700; font-size:0.86rem;
+    cursor:pointer; transition:background .2s ease;
+  }
+  .select-btn:hover{ background:var(--gold-soft); }
+
+  .back-link{
+    display:inline-flex; align-items:center; gap:6px; color:var(--gold-soft);
+    font-size:0.88rem; font-weight:500; margin-top:6px;
+  }
+
+  @media (max-width:900px){
+    .results-layout{ grid-template-columns:1fr; }
+    .filters{ position:static; }
+    .flight-card{ grid-template-columns:1fr; text-align:left; gap:14px; }
+    .flight-price{ text-align:left; }
+    .flight-times{ justify-content:flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <nav class="wrap">
+    <a href="index.html" class="logo">
+      <span class="mark">✈</span>
+      <span>One Number Travel<span class="tel mono">+1 (800) 555-0142 · one call, everywhere</span></span>
+    </a>
+    <div class="navlinks">
+      <a href="index.html#services">Flights</a>
+      <a href="index.html#services">Hotels</a>
+      <a href="index.html#services">Visa</a>
+      <a href="index.html#how">How it works</a>
+      <a href="index.html#contact" class="navcta">Call Us</a>
+    </div>
+  </nav>
+</header>
+
+<section class="results-header">
+  <div class="wrap">
+    <a href="index.html" class="back-link">← New search</a>
+    <span class="eyebrow" style="margin-top:14px;">Search results</span>
+    <h1>12 flights found</h1>
+    <div class="route">
+      <span>Hyderabad <b>HYD</b></span>
+      <span>→</span>
+      <span>Dubai <b>DXB</b></span>
+      <span>· One Way · Economy</span>
+    </div>
+  </div>
+</section>
+
+<section class="results-wrap">
+  <div class="wrap results-layout">
+    <aside class="filters">
+      <h3>Filter results</h3>
+      <div class="filter-group">
+        <label>Stops</label>
+        <span class="filter-chip active">Any</span>
+        <span class="filter-chip">Nonstop</span>
+        <span class="filter-chip">1 stop</span>
+      </div>
+      <div class="filter-group">
+        <label>Airline</label>
+        <span class="filter-chip active">All</span>
+        <span class="filter-chip">Emirates</span>
+        <span class="filter-chip">IndiGo</span>
+        <span class="filter-chip">Air India</span>
+      </div>
+      <div class="filter-group">
+        <label>Departure time</label>
+        <span class="filter-chip active">Any time</span>
+        <span class="filter-chip">Morning</span>
+        <span class="filter-chip">Evening</span>
+      </div>
+    </aside>
+
+    <div class="results-list">
+      <div class="result-count">
+        <p>Showing 12 of 12 flights</p>
+        <select class="sort-select">
+          <option>Sort: Cheapest first</option>
+          <option>Sort: Fastest first</option>
+          <option>Sort: Earliest departure</option>
+        </select>
+      </div>
+
+      <div class="flight-card">
+        <div>
+          <div class="flight-airline">
+            <div class="airline-badge">E</div>
+            <div>
+              <div class="airline-name">Emirates</div>
+              <div class="airline-meta">EK 524 · Nonstop</div>
+            </div>
+          </div>
+          <div class="flight-times">
+            <div class="time"><b>06:40</b><span>HYD</span></div>
+            <div class="duration">3h 15m<div class="duration-line"></div>Nonstop</div>
+            <div class="time"><b>08:55</b><span>DXB</span></div>
+          </div>
+        </div>
+        <div></div>
+        <div class="flight-price">
+          <div class="amount">₹18,240</div>
+          <div class="per">per traveller</div>
+          <button class="select-btn">Select</button>
+        </div>
+      </div>
+
+      <div class="flight-card">
+        <div>
+          <div class="flight-airline">
+            <div class="airline-badge">I</div>
+            <div>
+              <div class="airline-name">IndiGo</div>
+              <div class="airline-meta">6E 1412 · Nonstop</div>
+            </div>
+          </div>
+          <div class="flight-times">
+            <div class="time"><b>13:05</b><span>HYD</span></div>
+            <div class="duration">3h 30m<div class="duration-line"></div>Nonstop</div>
+            <div class="time"><b>15:35</b><span>DXB</span></div>
+          </div>
+        </div>
+        <div></div>
+        <div class="flight-price">
+          <div class="amount">₹15,890</div>
+          <div class="per">per traveller</div>
+          <button class="select-btn">Select</button>
+        </div>
+      </div>
+
+      <div class="flight-card">
+        <div>
+          <div class="flight-airline">
+            <div class="airline-badge">A</div>
+            <div>
+              <div class="airline-name">Air India</div>
+              <div class="airline-meta">AI 947 · 1 stop · DOH</div>
+            </div>
+          </div>
+          <div class="flight-times">
+            <div class="time"><b>21:10</b><span>HYD</span></div>
+            <div class="duration">6h 45m<div class="duration-line"></div>1 stop</div>
+            <div class="time"><b>04:55</b><span>DXB</span></div>
+          </div>
+        </div>
+        <div></div>
+        <div class="flight-price">
+          <div class="amount">₹12,430</div>
+          <div class="per">per traveller</div>
+          <button class="select-btn">Select</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <div class="logo">✈ One Number Travel</div>
+        <p>Flights, hotels, and visas coordinated through a single point of contact — since 2019.</p>
+      </div>
+      <div>
+        <h4>Book</h4>
+        <a href="index.html#services">Flights</a>
+        <a href="index.html#services">Hotels</a>
+        <a href="index.html#services">Visa services</a>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <a href="#">About</a>
+        <a href="#">Careers</a>
+        <a href="#">Press</a>
+      </div>
+      <div>
+        <h4>Support</h4>
+        <a href="index.html#contact">Contact</a>
+        <a href="#">Manage booking</a>
+        <a href="#">FAQ</a>
+      </div>
+    </div>
+    <div class="wrap foot-bottom">
+      <span>© 2026 One Number Travel. All rights reserved.</span>
+      <span>Hyderabad · Dubai · London</span>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
