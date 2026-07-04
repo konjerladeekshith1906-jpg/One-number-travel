@@ -1,0 +1,13 @@
+name: Keep Awake
+
+on:
+  schedule:
+    - cron: '*/14 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the site
+        run: curl -s https://one-number-travel.onrender.com > /dev/null
