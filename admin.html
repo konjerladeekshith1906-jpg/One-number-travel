@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin - Saved Searches</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; background: #f7f4ec; color: #12294b; }
+    h1 { margin-bottom: 8px; }
+    p { color: #5c6270; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #12294b; color: white; }
+    .empty { color: #5c6270; padding: 20px; background: white; border: 1px dashed #ccc; }
+  </style>
+</head>
+<body>
+  <h1>Saved Search Requests</h1>
+  <p>View all searches saved to your MySQL database.</p>
+  <div id="status">Loading...</div>
+  <table id="resultsTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Date</th>
+        <th>Saved At</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+
+  <script>
+    async function loadData() {
+      try {
+        const response = await fetch('/api/admin/searches');
+        const data = await response.json();
+        const rows = document.getElementById('rows');
+        const table = document.getElementById('resultsTable');
+        const status = document.getElementById('status');
+
+        if (!response.ok) {
+          status.innerHTML = '<strong>Error:</strong> ' + (data.message || 'Unable to load data');
+          return;
+        }
+
+        if (!data.length) {
+          status.innerHTML = 'No searches saved yet.';
+          table.style.display = 'none';
+          return;
+        }
+
+        rows.innerHTML = data.map(item => `
+          <tr>
+            <td>${item.id}</td>
+            <td>${item.from_location}</td>
+            <td>${item.to_location}</td>
+            <td>${item.travel_date}</td>
+            <td>${item.created_at}</td>
+          </tr>
+        `).join('');
+
+        table.style.display = 'table';
+        status.innerHTML = 'Loaded ' + data.length + ' saved search request(s).';
+      } catch (error) {
+        document.getElementById('status').innerHTML = '<strong>Error:</strong> ' + error.message;
+      }
+    }
+
+    loadData();
+  </script>
+</body>
+</html>

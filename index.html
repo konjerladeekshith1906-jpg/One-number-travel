@@ -555,9 +555,13 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ from, to, date })
       });
-      
-      if(response.ok) {
+
+      const data = await response.json().catch(() => ({}));
+
+      if(response.ok && data.success) {
         window.location.href = '/results';
+      } else {
+        alert(data.message || 'Unable to save your search right now.');
       }
     });
   }
